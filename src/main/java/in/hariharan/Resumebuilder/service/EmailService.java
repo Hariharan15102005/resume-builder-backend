@@ -21,6 +21,22 @@ public class EmailService {
 	@Value("${app.base.url:http://localhost:8080}")
 	private String appBaseUrl;
 
+	public void sendHtmlEmail(String toEmail, String subject, String htmlContent) {
+		try {
+			MimeMessage message = mailSender.createMimeMessage();
+			MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+			helper.setFrom(fromEmail);
+			helper.setTo(toEmail);
+			helper.setSubject(subject);
+			helper.setText(htmlContent, true);
+			mailSender.send(message);
+			log.info("Sent email to {}", toEmail);
+		} catch (Exception ex) {
+			log.error("Failed to send email to {}", toEmail, ex);
+			throw new RuntimeException("Failed to send email: " + ex.getMessage(), ex);
+		}
+	}
+
 	public void sendVerificationEmail(String toEmail, String token) {
 		try {
 			String verificationLink = appBaseUrl + "/api/auth/verify-email?token=" + token;

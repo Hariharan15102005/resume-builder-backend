@@ -6,13 +6,14 @@ import in.hariharan.Resumebuilder.document.User;
 import in.hariharan.Resumebuilder.repository.UserRepository;
 import in.hariharan.Resumebuilder.exception.ResourceExistsException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class AuthService {
 
     @Autowired
@@ -20,9 +21,6 @@ public class AuthService {
 
     @Autowired
     private EmailService emailService;
-
-    @Value("${app.base.url:http://localhost:8080}")
-    private String appBaseUrl;
 
     public AuthResponse register(RegisterRequest request) {
         User user = toDocument(request);
@@ -45,7 +43,7 @@ public class AuthService {
         user.setUpdatedAt(LocalDateTime.now());
 
         User savedUser = userRepository.save(user);
-        emailService.sendVerificationEmail(savedUser.getEmail(), savedUser.getVerificationToken());
+        sendVerificationEmail(savedUser);
         return savedUser;
     }
 
@@ -82,8 +80,27 @@ public class AuthService {
         }
 
         user.setEmailVerified(true);
+        user.setVerificationToken(null);
+        user.setVerificationExpires(null);
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
+    }
+
+    private void sendVerificationEmail(User user) {
+        try {
+            String verificationLink = "http://localhost:8081/api/auth/verify?token=" + user.getVerificationToken();
+            String htmlContent = "<div style='font-family:sans-serif'>"
+                    + "<h2>Verify your Email</h2>"
+                    + "<p>Please click the button below to verify your email address.</p>"
+                    + "<p><a href='" + verificationLink + "' style='display:inline-block;padding:10px 16px;background:#6366f1;color:#fff;text-decoration:none;border-radius:6px;'>Verify Email</a></p>"
+                    + "<p>Or copy this link: " + verificationLink + "</p>"
+                    + "</div>";
+
+            emailService.sendHtmlEmail(user.getEmail(), "Verify your Email", htmlContent);
+        } catch (Exception ex) {
+            log.error("Failed to send verification email to {}", user.getEmail(), ex);
+            throw new RuntimeException("Failed to send verification email: " + ex.getMessage(), ex);
+        }
     }
 
 }
