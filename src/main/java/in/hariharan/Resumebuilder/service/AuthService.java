@@ -6,7 +6,10 @@ import in.hariharan.Resumebuilder.document.User;
 import in.hariharan.Resumebuilder.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import in.hariharan.Resumebuilder.exception.ResourceExistsException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+import in.hariharan.Resumebuilder.service.EmailService;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -16,6 +19,10 @@ import java.util.UUID;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final EmailService emailService;
+
+    @Value("${app.base.url:http://localhost:8080}")
+    private String appBaseUrl;
 
     public AuthResponse register(RegisterRequest request) {
         // simple existence check
@@ -25,6 +32,8 @@ public class AuthService {
 
         User newUser = toDocument(request);
         newUser = userRepository.save(newUser);
+
+        sendVerificationEmail(newUser);
 
         return toResponse(newUser);
     }
@@ -55,6 +64,18 @@ public class AuthService {
                 .verificationToken(UUID.randomUUID().toString())
                 .verificationExpires(LocalDateTime.now().plusHours(24))
                 .build();
+    }
+
+    private void sendVerificationEmail(User user) {
+        try {
+            String link = appBaseUrl + "/api/auth/verify?token=" + user.getVerificationToken();
+            String html = "<p>Hello " + user.getName() + ",</p>"
+                    + "<p>Please verify your email by clicking the link below:</p>"
+                    + "<p><a href=\"" + link + "\">Verify Email</a></p>";
+            emailService.sendHtmlEmail(user.getEmail(), "Verify your email", html);
+        } catch (Exception ex) {
+            // log or ignore for now; do not fail registration on email send failure
+        }
     }
 
 }
