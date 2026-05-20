@@ -69,6 +69,7 @@ public class AuthService {
     private void sendVerificationEmail(User user) {
         try {
             String link = appBaseUrl + "/api/auth/verify-email?token=" + user.getVerificationToken();
+            String subject = "Verify your email";
             String html = "<div style='font-family:sans-serif'>"
                     + "<h2>Verify your email</h2>"
                     + "<p>Hi " + user.getName() + ", please confirm your email to activate your account.</p>"
@@ -76,7 +77,7 @@ public class AuthService {
                     + "<p>Or copy this link: " + link + "</p>"
                     + "<p>This link expires in 24 hours.</p>"
                     + "</div>";
-            emailService.sendHtmlEmail(user.getEmail(), "Verify your email", html);
+            emailService.sendHtmlEmail(user.getEmail(), subject, html);
         } catch (Exception ex) {
             throw new RuntimeException("Failed to send verification email: " + ex.getMessage(), ex);
         }
